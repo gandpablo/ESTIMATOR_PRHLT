@@ -14,26 +14,25 @@ def get_experiment_dir(tool, outdir, K, remain, trim, metric, grouped):
     outdir = str(Path(outdir).absolute())
     t_flag = int(remain)
 
-    if grouped and tool == "lm":
+    if tool == "lm":
         trim_flag = int(trim is not None)
         lim = 0.0 if trim is None else trim
-        experiment = f"lm_grouped_tr{trim_flag}_lim{lim}"
-    elif grouped and tool == "sx":
-        trim_flag = int(trim is not None)
-        lim = 0.0 if trim is None else trim
-        experiment = f"simplex_grouped_tr{trim_flag}_lim{lim}"
-    elif grouped:
-        experiment = "ts_grouped"
-    elif tool == "lm":
-        trim_flag = int(trim is not None)
-        lim = 0.0 if trim is None else trim
-        experiment = f"lm_K{K}_t{t_flag}_tr{trim_flag}_lim{lim}"
+        if grouped:
+            experiment = f"lm_grouped_K{K}_t{t_flag}_tr{trim_flag}_lim{lim}"
+        else:
+            experiment = f"lm_K{K}_t{t_flag}_tr{trim_flag}_lim{lim}"
     elif tool == "sx":
         trim_flag = int(trim is not None)
         lim = 0.0 if trim is None else trim
-        experiment = f"simplex_K{K}_t{t_flag}_tr{trim_flag}_lim{lim}"
+        if grouped:
+            experiment = f"simplex_grouped_K{K}_t{t_flag}_tr{trim_flag}_lim{lim}"
+        else:
+            experiment = f"simplex_K{K}_t{t_flag}_tr{trim_flag}_lim{lim}"
     else:
-        experiment = f"ts_K{K}_t{t_flag}_{metric}"
+        if grouped:
+            experiment = f"ts_grouped_K{K}_t{t_flag}"
+        else:
+            experiment = f"ts_K{K}_t{t_flag}_{metric}"
 
     return Path(outdir) / experiment
 
@@ -43,15 +42,12 @@ def get_expected_inputs(tool, archivo_calibracion, archivo_evaluacion, outdir, K
     expected = {
         "archivo1": str(Path(archivo_calibracion).absolute()),
         "archivo2": str(Path(archivo_evaluacion).absolute()),
+        "K": K,
+        "t": remain,
+        "grouped": grouped,
         "outdir": str(Path(outdir).absolute()),
         "experiment_dir": str(experiment_dir.absolute()),
     }
-
-    if grouped:
-        expected["grouped"] = True
-    else:
-        expected["K"] = K
-        expected["t"] = remain
 
     if tool in {"lm", "sx"}:
         expected["trim"] = trim is not None
@@ -78,14 +74,25 @@ def should_recalculate(experiment_dir):
     return answer in {"y", "yes", "s", "si", "sí"}
 
 
+def die(message):
+    print(f"Error: {message}", file=sys.stderr)
+    raise SystemExit(2)
+
+
 args = [fix_token(arg) for arg in sys.argv[1:]]
+
+if len(args) < 4:
+    die("uso: estimator lm|sx|ts archivo_calibracion archivo_evaluacion outdir ...")
 
 tool = args[0]
 archivo_calibracion = args[1]
 archivo_evaluacion = args[2]
 outdir = args[3]
 
-K = 100
+if tool not in {"lm", "sx", "ts"}:
+    die("el primer argumento debe ser lm, sx o ts")
+
+K = None
 remain = False
 trim = None
 metric = "ce"
@@ -120,12 +127,18 @@ while i < len(args):
         i += 1
         continue
 
-    K = int(token)
+    try:
+        K = int(token)
+    except ValueError:
+        die(f"argumento no reconocido: {token}")
     i += 1
 
+if K is None:
+    if grouped:
+        die("K es obligatorio si se usa --grouped; se usa sólo para nombrar el experimento")
+    K = 100
+
 if grouped:
-    K = None
-    remain = False
     metric = None
 
 expected_inputs, experiment_dir = get_expected_inputs(
@@ -170,16 +183,16 @@ cmd = [
     archivo_evaluacion,
 ]
 
-if grouped:
-    cmd.append("--grouped")
-else:
-    cmd.append(str(K))
+cmd.append(str(K))
 
 if tool == "ts" and not grouped:
     cmd.append(metric)
 
-if not grouped:
-    cmd.extend(["--t", "True" if remain else "False"])
+if remain:
+    cmd.append("--remain")
+
+if grouped:
+    cmd.append("--grouped")
 
 if tool in {"lm", "sx"} and trim is not None:
     cmd.extend(["--trim", "True", "--lim", str(trim)])

@@ -101,10 +101,10 @@ Para ficheros que ya vienen agrupados:
 
 ```bash
 estimator lm|sx archivo_calibracion_agrupada archivo_evaluacion_agrupada \
-  outdir --grouped [--trim:VALOR]
+  outdir K --grouped [--remain] [--trim:VALOR]
 
 estimator ts archivo_calibracion_agrupada archivo_evaluacion_agrupada \
-  outdir --grouped
+  outdir K --grouped [--remain]
 ```
 
 ---
@@ -115,14 +115,17 @@ estimator ts archivo_calibracion_agrupada archivo_evaluacion_agrupada \
 * `archivo_calibracion`: fichero para ajustar el modelo (.txt, .out, ...)
 * `archivo_evaluacion`: fichero para evaluar el modelo (.txt, .out, ...)
 * `outdir`: directorio raíz de salida
-* `K`: número de grupos (por defecto `100`)
+* `K`: número de grupos (por defecto `100` si no se usa `--grouped`).
+  Con `--grouped` es obligatorio, aunque sólo se usa para nombrar la
+  carpeta del experimento
 
 Opcionales:
 
 * `--remain`: el resto se guarda como último bloque independiente
-* (sin flag) el resto se fusiona en el último bloque
+* (sin flag) el resto se fusiona en el último bloque y la ruta usa `t0`
 * `--grouped`: los ficheros de entrada ya están agrupados; en este modo
-  no hace falta pasar `K` ni `--remain`
+  `K` y `t` no se usan para calcular, sólo para que las rutas de salida
+  sean comprensibles
 * si detecta exactamente el mismo experimento en el mismo `outdir`,
   avisa y pide confirmación antes de recalcular y sobrescribir
 
@@ -194,8 +197,11 @@ m  media_estimada  media_empirica
 
 En este modo:
 
-* no se pasa `K`
-* no se usa `--remain`
+* se pasa `K`
+* si aparece `--remain`, la ruta usa `t1`; si no aparece, usa `t0`
+* `K` y `t` no se usan para reagrupar ni para recalcular los datos; sólo
+  se guardan en `metadata.json` y en el nombre de la carpeta del
+  experimento
 * no se genera la carpeta superior `grouped/` con una nueva agrupación
   de calibración/evaluación
 * `lm` y `sx` ajustan el modelo con la calibración agrupada y evalúan
@@ -207,10 +213,13 @@ En este modo:
 Ejemplos:
 
 ```bash
-estimator lm grouped/calibrationK100 grouped/evaluationK100 results --grouped
-estimator sx grouped/calibrationK100 grouped/evaluationK100 results --grouped \
+estimator lm grouped/calibrationK100 grouped/evaluationK100 results 100 \
+  --grouped
+estimator sx grouped/calibrationK100 grouped/evaluationK100 results 100 \
+  --grouped \
   --trim:1.5
-estimator ts grouped/calibrationK100 grouped/evaluationK100 results --grouped
+estimator ts grouped/calibrationK100 grouped/evaluationK100 results 100 \
+  --grouped
 ```
 
 ---
@@ -364,9 +373,9 @@ Con `--grouped`:
 
 ```text
 outdir/
-├── lm_grouped_tr{0|1}_lim{valor}/
-├── simplex_grouped_tr{0|1}_lim{valor}/
-└── ts_grouped/
+├── lm_grouped_K{K}_t{0|1}_tr{0|1}_lim{valor}/
+├── simplex_grouped_K{K}_t{0|1}_tr{0|1}_lim{valor}/
+└── ts_grouped_K{K}_t{0|1}/
 ```
 
 Contenido común:
@@ -428,7 +437,7 @@ estimator ts examples/calibration_ts.txt examples/evaluation_ts.txt \
 ```bash
 estimator lm examples/results_lm/lm_K3_t1_tr1_lim1.5/grouped/calibrationK3 \
   examples/results_lm/lm_K3_t1_tr1_lim1.5/grouped/evaluationK3 \
-  examples/results_lm_grouped --grouped --trim:1.5
+  examples/results_lm_grouped 3 --grouped --remain --trim:1.5
 ```
 
 ### 8.5 Ejecución de código para generación de gráficos

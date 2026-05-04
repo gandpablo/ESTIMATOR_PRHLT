@@ -473,7 +473,7 @@ if __name__ == "__main__":
     parser.add_argument("archivo1", type=str) # Archivo de calibración
     parser.add_argument("archivo2", type=str) # Archivo de evaluación
     parser.add_argument("K", type=int, nargs="?")
-    parser.add_argument("--t", type=str, default = "False") # En caso de no entero que hace (true o false)
+    parser.add_argument("--remain", action="store_true") # Si hay resto, dejarlo como grupo final separado
     parser.add_argument("--trim", type=str, default = "False") # Si hace triming o no (true o false)
     parser.add_argument("--lim", type=float, default = 0.0) # Limite para el triming
     parser.add_argument("--outdir", type=str, default = "./experiments") # Directorio raíz de salida
@@ -486,18 +486,18 @@ if __name__ == "__main__":
     K = args.K
     grouped = args.grouped
 
-    if not grouped and K is None:
-        parser.error("K es obligatorio si no se usa --grouped")
+    if K is None:
+        parser.error("K es obligatorio. Con --grouped se usa sólo para nombrar el experimento")
 
-    t = False if grouped else (args.t == "True")
+    t = args.remain
     trim = (args.trim == "True")
     lim = args.lim
     outdir = os.path.abspath(args.outdir)
     t_flag = int(t)
     trim_flag = int(trim)
-    suffix = "_grouped" if grouped else f"K{K}"
+    suffix = f"_grouped_K{K}_t{t_flag}" if grouped else f"K{K}"
 
-    experimento = f"simplex_grouped_tr{trim_flag}_lim{lim}" if grouped else f"simplex_K{K}_t{t_flag}_tr{trim_flag}_lim{lim}"
+    experimento = f"simplex_grouped_K{K}_t{t_flag}_tr{trim_flag}_lim{lim}" if grouped else f"simplex_K{K}_t{t_flag}_tr{trim_flag}_lim{lim}"
     carpeta = os.path.join(outdir, experimento)
     grouped_dir = os.path.join(carpeta, "grouped")
     predictions_dir = os.path.join(carpeta, "predictions")

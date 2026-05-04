@@ -267,7 +267,6 @@ def guardar_metadata(metadata_path, metadata):
         json.dump(metadata, out, indent=2)
 
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
@@ -281,7 +280,7 @@ if __name__ == "__main__":
         choices=["ce", "dE", "DE"],
         help="Criterio de optimización de T"
     )
-    parser.add_argument("--t",help="Si hay resto, dejarlo como grupo final separado")
+    parser.add_argument("--remain", action="store_true", help="Si hay resto, dejarlo como grupo final separado")
     parser.add_argument("--outdir", type=str, default="./experiments", help="Directorio raíz de salida")
     parser.add_argument("--grouped", action="store_true", help="Los archivos ya estan agrupados")
 
@@ -294,15 +293,15 @@ if __name__ == "__main__":
         opt = args.optimization
         grouped = args.grouped
 
-        if not grouped and K is None:
-            parser.error("K es obligatorio si no se usa --grouped")
+        if K is None:
+            parser.error("K es obligatorio. Con --grouped se usa sólo para nombrar el experimento")
         if not grouped and opt is None:
             parser.error("optimization es obligatorio si no se usa --grouped")
 
-        t = False if grouped else (args.t == "True")
+        t = args.remain
         outdir = os.path.abspath(args.outdir)
         t_flag = int(t)
-        suffix = "_grouped" if grouped else f"K{K}"
+        suffix = f"_grouped_K{K}_t{t_flag}" if grouped else f"K{K}"
 
         if grouped:
             parsed_calib, parsed = given_grouped(archivo1, archivo2)
@@ -320,7 +319,7 @@ if __name__ == "__main__":
             else:  # opt == "DE"
                 T = optimize_temperature_DE(y_calib, probs_calib, K, t)
 
-        experimento = "ts_grouped" if grouped else f"ts_K{K}_t{t_flag}_{opt}"
+        experimento = f"ts_grouped_K{K}_t{t_flag}" if grouped else f"ts_K{K}_t{t_flag}_{opt}"
         carpeta = os.path.join(outdir, experimento)
         grouped_dir = os.path.join(carpeta, "grouped")
         predictions_dir = os.path.join(carpeta, "predictions")
