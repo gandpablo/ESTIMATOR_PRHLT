@@ -10,11 +10,6 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-<<<<<<< HEAD
 
 .debug/
 .debug_lm.ipynb
-=======
-.debug/
-.debug_lm.ipynb
->>>>>>> 863dd8b (arreglado error agrupacion)
